@@ -1,0 +1,82 @@
+type UpdateMode = 
+ variant {
+   Add;
+   Remove;
+ };
+type RecordKey = 
+ variant {
+   id: nat32;
+   user: principal;
+ };
+type DimensionType = 
+ variant {
+   Binary;
+   Categorical;
+   Numerical;
+ };
+type DatasetValue = 
+ record {
+   dimensionId: nat32;
+   value: text;
+ };
+type DatasetEntryInput = 
+ record {
+   id: RecordKey;
+   values: vec DatasetValue;
+ };
+type DatasetEntry = 
+ record {
+   createdAt: int;
+   id: RecordKey;
+   updatedAt: int;
+   values: vec DatasetValue;
+ };
+type DatasetDimension = 
+ record {
+   dimensionId: nat32;
+   dimensionType: DimensionType;
+   title: text;
+   values: vec text;
+ };
+type DatasetCreateRequest = 
+ record {
+   datasetConfig: DatasetConfigurationInput;
+   initialSupply: nat;
+   metadataNFT: blob;
+ };
+type DatasetConfigurationInput = 
+ record {
+   assetId: text;
+   dimensions: vec DatasetDimension;
+   name: text;
+ };
+type DatasetConfiguration = 
+ record {
+   assetId: text;
+   createdAt: int;
+   dimensions: vec DatasetDimension;
+   name: text;
+   updatedAt: int;
+ };
+service : {
+  createDataSet: (DatasetCreateRequest) -> (nat32);
+  deleteAllEntriesOfUser: (nat32) -> (bool);
+  deleteDataNFT: (nat32) -> ();
+  deleteEntry: (nat32) -> (bool);
+  getAllData: () -> (vec record {
+                           nat32;
+                           vec DatasetEntry;
+                         }) query;
+  getDataByDatasetId: (nat32) -> (opt vec DatasetEntry) query;
+  getDatasetByDatasetId: (nat32) -> (opt DatasetConfiguration) query;
+  getDatasetEntryCounts: (vec nat32) -> (vec record {
+                                               nat32;
+                                               nat;
+                                             }) query;
+  getProducers: (nat32) -> (opt vec principal);
+  getUserDataByDatasetId: (nat32) -> (vec DatasetEntry) query;
+  isUserProducer: (nat32) -> (bool);
+  putEntry: (nat32, DatasetEntryInput, UpdateMode) -> () oneway;
+  putManyEntries: (nat32, vec DatasetEntryInput) -> () oneway;
+  updateProducerList: (nat32, principal, UpdateMode) -> ();
+}

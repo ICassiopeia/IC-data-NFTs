@@ -1,0 +1,3 @@
+[submodule "src/toniq-ext"]
+	path = src/toniq-ext
+	url = git@github.com:Toniq-Labs/extendable-token.git

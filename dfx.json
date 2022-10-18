@@ -1,7 +1,14 @@
 {
   "canisters": {
+    "F-NFT": {
+      "main": "src/F-NFT/F-NFT.mo",
+      "type": "motoko"
+    },
     "dataNFT_backend": {
-      "main": "src/dataNFT_backend/main.mo",
+      "dependencies": [
+        "F-NFT"
+      ],
+      "main": "src/dataNFT_backend/assets.mo",
       "type": "motoko"
     },
     "dataNFT_frontend": {
