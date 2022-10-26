@@ -1,3 +1,8 @@
+type Value = 
+ variant {
+   attribute: text;
+   metric: nat32;
+ };
 type UpdateMode = 
  variant {
    Add;
@@ -11,13 +16,13 @@ type RecordKey =
 type DimensionType = 
  variant {
    Binary;
-   Categorical;
+   Categorical: vec text;
    Numerical;
  };
 type DatasetValue = 
  record {
    dimensionId: nat32;
-   value: text;
+   value: Value;
  };
 type DatasetEntryInput = 
  record {
@@ -36,7 +41,6 @@ type DatasetDimension =
    dimensionId: nat32;
    dimensionType: DimensionType;
    title: text;
-   values: vec text;
  };
 type DatasetCreateRequest = 
  record {
@@ -62,18 +66,23 @@ service : {
   createDataSet: (DatasetCreateRequest) -> (nat32);
   deleteAllEntriesOfUser: (nat32) -> (bool);
   deleteDataNFT: (nat32) -> ();
-  deleteEntry: (nat32) -> (bool);
-  getAllData: () -> (vec record {
-                           nat32;
-                           vec DatasetEntry;
-                         }) query;
+  deleteUserEntry: (nat32) -> (bool);
   getDataByDatasetId: (nat32) -> (opt vec DatasetEntry) query;
   getDatasetByDatasetId: (nat32) -> (opt DatasetConfiguration) query;
   getDatasetEntryCounts: (vec nat32) -> (vec record {
                                                nat32;
                                                nat;
                                              }) query;
+  getGDPRAggregatedDataset: (nat32, nat32, nat32) ->
+   (vec record {
+          Value;
+          record {
+            count: nat32;
+            sum: nat32;
+          };
+        }) query;
   getProducers: (nat32) -> (opt vec principal);
+  getRowsByDatasetId: (nat32, int) -> (opt DatasetEntry) query;
   getUserDataByDatasetId: (nat32) -> (vec DatasetEntry) query;
   isUserProducer: (nat32) -> (bool);
   putEntry: (nat32, DatasetEntryInput, UpdateMode) -> () oneway;

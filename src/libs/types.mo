@@ -17,7 +17,7 @@ module {
 
   public type DimensionType = {
     #Binary;
-    #Categorical;
+    #Categorical: [Text];
     #Numerical;
   };
 
@@ -39,7 +39,6 @@ module {
     dimensionId : Nat32;
     title : Text;
     dimensionType : DimensionType;
-    values : [Text];
   };
 
   public type RecordKey = {
@@ -65,6 +64,32 @@ module {
     // };
   };
 
+  public type Value = {
+    #metric : Nat32;
+    #attribute : Text;
+  };
+
+  public module Value = {
+    public func equal(x : Value, y : Value) : Bool {
+      return switch(x) {
+        case(#metric(x1)) switch(y) {
+            case(#metric(y1)) (Nat32.equal(x1, y1) == false);
+            case(#attribute(_)) true;
+          };
+        case(#attribute(x2))  switch(y) {
+          case(#metric(_)) true;
+          case(#attribute(y2)) (Text.equal(x2, y2) == false);
+        };
+      };
+    };
+    public func hash(x : Value) : Hash.Hash {
+      return switch(x) {
+        case(#metric(x1)) return x1;
+        case(#attribute(x2)) return Text.hash(x2);
+      };
+    };
+  };
+
   public type DatasetEntry = {
     id : RecordKey;
     values : [DatasetValue];
@@ -79,7 +104,7 @@ module {
 
   public type DatasetValue = {
     dimensionId : Nat32;
-    value : Text;
+    value : Value;
   };
 
   public type DatasetType = {

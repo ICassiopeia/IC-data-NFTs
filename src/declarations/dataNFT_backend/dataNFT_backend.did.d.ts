@@ -22,7 +22,6 @@ export interface DatasetDimension {
   'title' : string,
   'dimensionId' : number,
   'dimensionType' : DimensionType,
-  'values' : Array<string>,
 }
 export interface DatasetEntry {
   'id' : RecordKey,
@@ -34,27 +33,33 @@ export interface DatasetEntryInput {
   'id' : RecordKey,
   'values' : Array<DatasetValue>,
 }
-export interface DatasetValue { 'dimensionId' : number, 'value' : string }
+export interface DatasetValue { 'dimensionId' : number, 'value' : Value }
 export type DimensionType = { 'Binary' : null } |
   { 'Numerical' : null } |
-  { 'Categorical' : null };
+  { 'Categorical' : Array<string> };
 export type RecordKey = { 'id' : number } |
   { 'user' : Principal };
 export type UpdateMode = { 'Add' : null } |
   { 'Remove' : null };
+export type Value = { 'metric' : number } |
+  { 'attribute' : string };
 export interface _SERVICE {
   'createDataSet' : ActorMethod<[DatasetCreateRequest], number>,
   'deleteAllEntriesOfUser' : ActorMethod<[number], boolean>,
   'deleteDataNFT' : ActorMethod<[number], undefined>,
-  'deleteEntry' : ActorMethod<[number], boolean>,
-  'getAllData' : ActorMethod<[], Array<[number, Array<DatasetEntry>]>>,
+  'deleteUserEntry' : ActorMethod<[number], boolean>,
   'getDataByDatasetId' : ActorMethod<[number], [] | [Array<DatasetEntry>]>,
   'getDatasetByDatasetId' : ActorMethod<[number], [] | [DatasetConfiguration]>,
   'getDatasetEntryCounts' : ActorMethod<
     [Array<number>],
     Array<[number, bigint]>,
   >,
+  'getGDPRAggregatedDataset' : ActorMethod<
+    [number, number, number],
+    Array<[Value, { 'sum' : number, 'count' : number }]>,
+  >,
   'getProducers' : ActorMethod<[number], [] | [Array<Principal>]>,
+  'getRowsByDatasetId' : ActorMethod<[number, bigint], [] | [DatasetEntry]>,
   'getUserDataByDatasetId' : ActorMethod<[number], Array<DatasetEntry>>,
   'isUserProducer' : ActorMethod<[number], boolean>,
   'putEntry' : ActorMethod<[number, DatasetEntryInput, UpdateMode], undefined>,

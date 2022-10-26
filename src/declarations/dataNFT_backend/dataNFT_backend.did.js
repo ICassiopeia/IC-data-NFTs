@@ -2,13 +2,12 @@ export const idlFactory = ({ IDL }) => {
   const DimensionType = IDL.Variant({
     'Binary' : IDL.Null,
     'Numerical' : IDL.Null,
-    'Categorical' : IDL.Null,
+    'Categorical' : IDL.Vec(IDL.Text),
   });
   const DatasetDimension = IDL.Record({
     'title' : IDL.Text,
     'dimensionId' : IDL.Nat32,
     'dimensionType' : DimensionType,
-    'values' : IDL.Vec(IDL.Text),
   });
   const DatasetConfigurationInput = IDL.Record({
     'assetId' : IDL.Text,
@@ -21,9 +20,10 @@ export const idlFactory = ({ IDL }) => {
     'datasetConfig' : DatasetConfigurationInput,
   });
   const RecordKey = IDL.Variant({ 'id' : IDL.Nat32, 'user' : IDL.Principal });
+  const Value = IDL.Variant({ 'metric' : IDL.Nat32, 'attribute' : IDL.Text });
   const DatasetValue = IDL.Record({
     'dimensionId' : IDL.Nat32,
-    'value' : IDL.Text,
+    'value' : Value,
   });
   const DatasetEntry = IDL.Record({
     'id' : RecordKey,
@@ -47,12 +47,7 @@ export const idlFactory = ({ IDL }) => {
     'createDataSet' : IDL.Func([DatasetCreateRequest], [IDL.Nat32], []),
     'deleteAllEntriesOfUser' : IDL.Func([IDL.Nat32], [IDL.Bool], []),
     'deleteDataNFT' : IDL.Func([IDL.Nat32], [], []),
-    'deleteEntry' : IDL.Func([IDL.Nat32], [IDL.Bool], []),
-    'getAllData' : IDL.Func(
-        [],
-        [IDL.Vec(IDL.Tuple(IDL.Nat32, IDL.Vec(DatasetEntry)))],
-        ['query'],
-      ),
+    'deleteUserEntry' : IDL.Func([IDL.Nat32], [IDL.Bool], []),
     'getDataByDatasetId' : IDL.Func(
         [IDL.Nat32],
         [IDL.Opt(IDL.Vec(DatasetEntry))],
@@ -68,10 +63,27 @@ export const idlFactory = ({ IDL }) => {
         [IDL.Vec(IDL.Tuple(IDL.Nat32, IDL.Nat))],
         ['query'],
       ),
+    'getGDPRAggregatedDataset' : IDL.Func(
+        [IDL.Nat32, IDL.Nat32, IDL.Nat32],
+        [
+          IDL.Vec(
+            IDL.Tuple(
+              Value,
+              IDL.Record({ 'sum' : IDL.Nat32, 'count' : IDL.Nat32 }),
+            )
+          ),
+        ],
+        ['query'],
+      ),
     'getProducers' : IDL.Func(
         [IDL.Nat32],
         [IDL.Opt(IDL.Vec(IDL.Principal))],
         [],
+      ),
+    'getRowsByDatasetId' : IDL.Func(
+        [IDL.Nat32, IDL.Int],
+        [IDL.Opt(DatasetEntry)],
+        ['query'],
       ),
     'getUserDataByDatasetId' : IDL.Func(
         [IDL.Nat32],

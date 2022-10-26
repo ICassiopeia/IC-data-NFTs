@@ -204,26 +204,54 @@ actor DatasetNFT {
     _datasetValues.get(datasetId)
 	};
 
-  public query({caller}) func getGDPRAggregatedDataset(datasetId : Nat32, attributeId : Nat32, metricId : Nat32) : async (?[(Nat32, {count: Nat32; sum: Nat32})]) {
-    let limit:Nat32 = 2;
-    let result: HashMap.HashMap<Nat32, {count: Nat32; sum: Nat32}> = HashMap.HashMap();
+  public query({caller}) func getRowsByDatasetId(datasetId : Nat32, rows: Int) : async (?T.DatasetEntry) {
+    // let _entries = _datasetValues.get(datasetId);
+    switch (_datasetValues.get(datasetId)) {
+      case(?_entries) Iter.fromArray<T.DatasetEntry>(_entries).next();
+      case(_) null
+    };
+	};
+
+  public query({caller}) func getGDPRAggregatedDataset(datasetId : Nat32, attributeId : Nat32, metricId : Nat32) : async ([(T.Value, {count: Nat32; sum: Nat32})]) {
+    let limit:Nat32 = 5;
+    let findAttribute = func(val : T.DatasetValue) : (Bool) {Nat32.equal(val.dimensionId, attributeId)};
+    let findMetric = func(val : T.DatasetValue) : (Bool) {Nat32.equal(val.dimensionId, metricId)};
+    let init : [(T.Value, {count: Nat32; sum: Nat32})] = [];
+    let result: HashMap.HashMap<T.Value, {count: Nat32; sum: Nat32}> = HashMap.fromIter(init.vals(), 0, T.Value.equal, T.Value.hash);
     switch(_datasetValues.get(datasetId)) {
       case (?_entries) {
-        for(_entry in Iter.fromArray(_values)) {
-          let attribute = Array.find(_entry.values, func(val : T.DatasetValue) : (Bool) {Nat32.equal(val.dimensionId, attributeId)});
-          let metric = Array.find(_entry.values, func(val : T.DatasetValue) : (Bool) {Nat32.equal(val.dimensionId, metricId)});
-          let updateValue: {count: Nat32; sum: Nat32} = switch(result.get(attribute)) {
-            case(_res) return {count=_res.count+1; sum=_res.sum+metric.value};
-            case(_) return {count=1; sum: metric.value};
+        for(_entry in Iter.fromArray(_entries)) {
+          switch(Array.find(_entry.values, findAttribute)) { // Find attribute
+            case(?_att) {
+              switch(Array.find(_entry.values, findMetric)) { // Find metric
+                case(?_met) {
+                  switch(result.get(_att.value)) {
+                    case(?_res) {
+                      switch(_met.value) {
+                        case(#metric(val)) result.put(_att.value, {count=_res.count+1; sum=_res.sum+val});
+                        case(#attribute(val)) result.put(_att.value, {count=_res.count+1; sum=_res.sum});
+                      };
+                    };
+                    case(_) {
+                      switch(_met.value) {
+                        case(#metric(val)) result.put(_att.value, {count=1; sum=val});
+                        case(#attribute(val)) result.put(_att.value, {count=1; sum=0});
+                      };
+                    };
+                  };
+                };
+                case(_) {};
+              };
+            };
+            case(_) {};
           };
         };
-        result.put(attribute, updateValue);
       };
       case (_) {};
     };
-    Array.filter<(Nat32, {count: Nat32; sum: Nat32})>(
-      Iter.toArray<(Nat32, {count: Nat32; sum: Nat32})>(result.entries(), func(val : (Nat32, {count: Nat32; sum: Nat32})) : (Bool) {Nat32.less(val.1.count, limit)})
-      )
+
+    let resArray = Iter.toArray<(T.Value, {count: Nat32; sum: Nat32})>(result.entries());
+    Array.filter<(T.Value, {count: Nat32; sum: Nat32})>(resArray, func(val : (T.Value, {count: Nat32; sum: Nat32})) : (Bool) {Nat32.less(val.1.count, limit)})
 	};
 
 }

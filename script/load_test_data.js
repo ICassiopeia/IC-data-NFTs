@@ -7,31 +7,23 @@ const { getActor, getHost } = require('./config');
 const ENV = process.env.ENV || "local"
 const DEFAULT_HOST = getHost(ENV)
 
-// Automate wiht Panda.js
 const datasetConfig = {
-  name: "Housing market dataset from Kaggle",
-  assetId: "kaggle_housing_dataset",
+  name: "Exams dataset from Kaggle",
+  assetId: "kaggle_exams_dataset",
   dimensions: [
-    {dimensionId : 1, title: "price", dimensionType: {Numerical: null}, values : []},
-    {dimensionId : 2, title: "area", dimensionType: {Numerical: null}, values : []},
-    {dimensionId : 3, title: "bedrooms", dimensionType: {Numerical: null}, values : []},
-    {dimensionId : 4, title: "bathrooms", dimensionType: {Numerical: null}, values : []},
-    {dimensionId : 5, title: "stories", dimensionType: {Numerical: null}, values : []},
-    {dimensionId : 6, title: "mainroad", dimensionType: {Numerical: null}, values : []},
-    {dimensionId : 7, title: "guestroom", dimensionType: {Numerical: null}, values : []},
-    {dimensionId : 8, title: "basement", dimensionType: {Numerical: null}, values : []},
-    {dimensionId : 9, title: "hotwaterheating", dimensionType: {Numerical: null}, values : []},
-    {dimensionId : 10, title: "parking", dimensionType: {Numerical: null}, values : []},
-    {dimensionId : 11, title: "prefarea", dimensionType: {Numerical: null}, values : []},
-    {dimensionId : 12, title: "semi-furnished", dimensionType: {Numerical: null}, values : []},
-    {dimensionId : 13, title: "unfurnished", dimensionType: {Numerical: null}, values : []},
-    {dimensionId : 14, title: "areaperbedroom", dimensionType: {Numerical: null}, values : []},
-    {dimensionId : 15, title: "bbratio", dimensionType: {Numerical: null}, values : []},
+    {dimensionId : 0, title: "gender", dimensionType: {Categorical: ["male", "female"]}},
+    {dimensionId : 1, title: "ethnicity", dimensionType: {Categorical: ["group A", "group B", "group C", "group D", "group E"]}},
+    {dimensionId : 2, title: "parental_education", dimensionType: {Categorical: ["high school", "some high school", "associate's degree"]}},
+    {dimensionId : 3, title: "lunch", dimensionType: {Categorical: ["free/reduced", "standard"]}},
+    {dimensionId : 4, title: "preparation_course", dimensionType: {Categorical: ["completed", "none"]}},
+    {dimensionId : 5, title: "math_score", dimensionType: {Numerical: null}},
+    {dimensionId : 6, title: "reading_score", dimensionType: {Numerical: null}},
+    {dimensionId : 7, title: "writing_score", dimensionType: {Numerical: null}},
   ],
 }
 
 const createDatasetRequest = {
-  metadataNFT: JSON.stringify({name: "Housing market dataset from Kaggle", assetId: "kaggle_housing_dataset"}).split('').map(x => x.charCodeAt()),
+  metadataNFT: JSON.stringify({name: datasetConfig.name, assetId: datasetConfig.assetId}).split('').map(x => x.charCodeAt()),
   initialSupply: 100,
   datasetConfig,
 }
@@ -43,30 +35,45 @@ const main = async () => {
   const actor = getActor("dataNFT_backend", ENV, DEFAULT_HOST);
 
   console.log("Mint dataset")
-  var datasetId
+  var datasetId, dataset
   try{
     datasetId = await actor.createDataSet(createDatasetRequest);
+    dataset = (await actor.getDatasetByDatasetId(datasetId))[0];
   } catch (e) {
     console.error(e);
   };
+  // console.log("Dataset configuration:", dataset)
 
   console.log("Import dataset")
   try{
     if(datasetId) {
-
       var datasetEntries=[];
-      fs.createReadStream(path.join(__dirname, "newhousing.csv"))
+      fs.createReadStream(path.join(__dirname, "exams.csv"))
       .pipe(parse({delimiter: ','}))
       .on('data', function(csvrow) {
         datasetEntries.push({
           id: {id: getRandomInt(100000)},
-          values: csvrow.map((val, idx) => {return {dimensionId: idx, value: val}}),
+          values: csvrow.map((val, idx) => {
+            const value = idx<5 ? {attribute: val} : {metric: parseInt(val)}
+            return {dimensionId: idx, value: value}
+          }),
         })
       })
       .on('end',async () => {
         console.log("Uploading data for dataset:", datasetId)
-        console.log("Uploading data for dataset:", datasetEntries[0])
-        await actor.putManyEntries(datasetId, datasetEntries.slice(0, 1));
+        const BATCH_SIZE = 100
+        const chunks = datasetEntries.reduce((resultArray, item, index) => { 
+          const chunkIndex = Math.floor(index/BATCH_SIZE)
+          if(!resultArray[chunkIndex]) {
+            resultArray[chunkIndex] = [] // start a new chunk
+          }
+          resultArray[chunkIndex].push(item)
+          return resultArray
+        }, [])
+        for(i=0;i<chunks.length;i++) {
+          console.log(`Uploading data chunk ${i+1}/${chunks.length}`)
+          await actor.putManyEntries(datasetId, chunks[i])
+        }
       })
     }
   } catch (e) {
